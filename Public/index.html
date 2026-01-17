@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Bites - Indian Food Ordering</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .modal-enter { transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .modal-active { transform: translateY(0); }
+        
+        @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .animate-scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        @keyframes bounceSubtle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .animate-bounce-subtle { animation: bounceSubtle 3s ease-in-out infinite; }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-900">
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div class="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('home')">
+                <div class="bg-orange-500 p-2 rounded-xl text-white">
+                    <i data-lucide="shopping-bag" size="20"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Local Bites</h1>
+                    <p class="text-[10px] text-gray-500 font-medium tracking-wider uppercase">Direct Ordering</p>
+                </div>
+            </div>
+            <button onclick="toggleSidebar(true)" class="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <i data-lucide="more-vertical" size="24"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="max-w-2xl mx-auto px-4 pb-12 pt-6">
+        <!-- Views will be injected here -->
+    </main>
+
+    <!-- Global Footer -->
+    <footer class="max-w-2xl mx-auto px-4 pb-32 pt-4 text-center border-t border-gray-100">
+        <p class="text-sm font-semibold text-gray-400 flex items-center justify-center gap-1.5 pt-8">
+            Designed by <span class="text-slate-800">Anurag</span> with 
+            <i data-lucide="heart" size="14" fill="#ef4444" class="text-red-500 inline"></i>
+        </p>
+    </footer>
+
+    <!-- Sidebar Drawer -->
+    <div id="sidebar-overlay" class="fixed inset-0 z-50 opacity-0 pointer-events-none transition-opacity duration-300 bg-black/40 hidden" onclick="toggleSidebar(false)"></div>
+    <div id="sidebar" class="fixed right-0 top-0 z-[51] h-full w-72 bg-white shadow-2xl transition-transform duration-300 translate-x-full">
+        <div class="p-8">
+            <div class="flex justify-between items-center mb-12">
+                <div class="flex items-center gap-2 text-orange-500">
+                    <i data-lucide="shopping-bag" size="24"></i>
+                    <span class="font-black text-xl tracking-tighter">LOCALBITES</span>
+                </div>
+                <button onclick="toggleSidebar(false)" class="p-2 bg-gray-50 rounded-full"><i data-lucide="x"></i></button>
+            </div>
+            <nav class="space-y-2">
+                <button onclick="navigateTo('home')" class="nav-btn flex items-center gap-4 p-4 rounded-2xl w-full text-left font-medium text-gray-600 hover:bg-gray-50" data-tab="home">
+                    <i data-lucide="home" size="20"></i> Home
+                </button>
+                <button onclick="navigateTo('orders')" class="nav-btn flex items-center gap-4 p-4 rounded-2xl w-full text-left font-medium text-gray-600 hover:bg-gray-50" data-tab="orders">
+                    <i data-lucide="history" size="20"></i> My Orders
+                </button>
+                <button onclick="navigateTo('profile')" class="nav-btn flex items-center gap-4 p-4 rounded-2xl w-full text-left font-medium text-gray-600 hover:bg-gray-50" data-tab="profile">
+                    <i data-lucide="user" size="20"></i> Profile
+                </button>
+                <button onclick="navigateTo('help')" class="nav-btn flex items-center gap-4 p-4 rounded-2xl w-full text-left font-medium text-gray-600 hover:bg-gray-50" data-tab="help">
+                    <i data-lucide="info" size="20"></i> Help & Support
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Floating Cart Bar -->
+    <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-40 max-w-2xl mx-auto hidden">
+        <button onclick="toggleCart(true)" class="w-full bg-slate-900 text-white p-5 rounded-3xl flex items-center justify-between shadow-2xl animate-bounce-subtle">
+            <div class="flex items-center gap-3">
+                <div id="cart-count" class="bg-orange-500 text-white w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm">0</div>
+                <span class="font-bold text-lg">View Cart</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="cart-price" class="font-black text-xl">₹0</span>
+                <i data-lucide="chevron-right" size="20"></i>
+            </div>
+        </button>
+    </div>
+
+    <!-- Food Detail Modal -->
+    <div id="detail-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeDetail()"></div>
+        <div id="detail-content" class="absolute bottom-0 left-0 right-0 sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:bottom-auto bg-white w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden modal-enter shadow-2xl">
+            <!-- Injected Detail Content -->
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkout-modal" class="fixed inset-0 z-[70] hidden bg-white flex flex-col">
+        <div class="px-4 h-20 border-b flex items-center justify-between shrink-0">
+            <button onclick="toggleCart(false)" class="p-3 bg-gray-50 rounded-2xl"><i data-lucide="arrow-left" size="24"></i></button>
+            <h2 id="checkout-title" class="font-black text-xl">Your Cart</h2>
+            <div class="w-12"></div>
+        </div>
+        <div id="checkout-body" class="flex-1 overflow-y-auto bg-gray-50 pb-20">
+            <!-- Injected Checkout Views -->
+        </div>
+        <div id="checkout-footer" class="p-6 border-t bg-white shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+            <!-- Injected Checkout Button -->
+        </div>
+    </div>
+
+    <script>
+        // --- State ---
+        let cart = [];
+        let currentTab = 'home';
+        let selectedCategory = 'All';
+        let checkoutStep = 0; // 0: Cart, 1: Payment, 2: Success
+
+        // Verified High-Quality Indian Food Images
+        const FOOD_ITEMS = [
+            { id: 1, name: "Butter Chicken", category: "Main Course", price: 320, rating: 4.8, time: "35 min", veg: false, image: "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?q=80&w=500&auto=format&fit=crop", description: "Tender chicken in creamy tomato gravy." },
+            { id: 2, name: "Paneer Butter Masala", category: "Main Course", price: 280, rating: 4.7, time: "30 min", veg: true, image: "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?q=80&w=500&auto=format&fit=crop", description: "Cottage cheese in rich tomato and butter sauce." },
+            { id: 3, name: "Dal Makhani", category: "Main Course", price: 220, rating: 4.9, time: "40 min", veg: true, image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?q=80&w=500&auto=format&fit=crop", description: "Slow-cooked black lentils with cream and spices." },
+            { id: 4, name: "Hyderabadi Biryani", category: "Main Course", price: 350, rating: 4.9, time: "45 min", veg: false, image: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?q=80&w=500&auto=format&fit=crop", description: "Aromatic basmati rice with marinated chicken." },
+            { id: 5, name: "Chole Bhature", category: "Main Course", price: 180, rating: 4.6, time: "25 min", veg: true, image: "https://images.unsplash.com/photo-1626132646529-500637532537?q=80&w=500&auto=format&fit=crop", description: "Spicy chickpeas served with fluffy fried bread." },
+            { id: 16, name: "Masala Dosa", category: "South Indian", price: 120, rating: 4.8, time: "15 min", veg: true, image: "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?q=80&w=500&auto=format&fit=crop", description: "Crispy crepe filled with potato masala." },
+            { id: 23, name: "Samosa (2 pcs)", category: "Snacks", price: 40, rating: 4.8, time: "10 min", veg: true, image: "https://images.unsplash.com/photo-1601050690597-df056fb01793?q=80&w=500&auto=format&fit=crop", description: "Fried pastry with savory potato filling." },
+            { id: 25, name: "Pav Bhaji", category: "Snacks", price: 150, rating: 4.9, time: "20 min", veg: true, image: "https://images.unsplash.com/photo-1626132646529-500637532537?q=80&w=500&auto=format&fit=crop", description: "Mashed vegetable curry with buttered buns." },
+            { id: 33, name: "Gulab Jamun", category: "Desserts", price: 60, rating: 4.9, time: "5 min", veg: true, image: "https://images.unsplash.com/photo-1589119908995-c6837fa14848?q=80&w=500&auto=format&fit=crop", description: "Warm milk-solid balls in sugar syrup." },
+            { id: 41, name: "Shahi Kulfi", category: "Ice Cream", price: 70, rating: 4.8, time: "5 min", veg: true, image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?q=80&w=500&auto=format&fit=crop", description: "Dense traditional Indian ice cream." },
+            { id: 47, name: "Masala Chai", category: "Beverages", price: 30, rating: 4.9, time: "10 min", veg: true, image: "https://images.unsplash.com/photo-1594631252845-29fc458695d6?q=80&w=500&auto=format&fit=crop", description: "Indian tea brewed with ginger and spices." }
+        ];
+
+        const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop";
+
+        const REVIEWS = [
+            { name: "Anjali Gupta", rating: 5, comment: "The Butter Chicken was absolutely divine! Best local find so far.", location: "Sector 12" },
+            { name: "Vikram Singh", rating: 4, comment: "Fast delivery and the Pav Bhaji was hot and fresh. Impressed!", location: "Model Town" },
+            { name: "Priya Das", rating: 5, comment: "Authentic taste and easy payment process. Loving Local Bites!", location: "Civil Lines" }
+        ];
+
+        const CATEGORIES = ["All", "Main Course", "South Indian", "Snacks", "Desserts", "Ice Cream", "Beverages"];
+        
+        while(FOOD_ITEMS.length < 52) {
+            const id = FOOD_ITEMS.length + 1;
+            FOOD_ITEMS.push({
+                id: id,
+                name: `Item ${id} Traditional`,
+                category: CATEGORIES[Math.floor(Math.random() * (CATEGORIES.length - 1)) + 1],
+                price: Math.floor(Math.random() * 200) + 50,
+                rating: (Math.random() * 1 + 4).toFixed(1),
+                time: "20 min",
+                veg: true,
+                image: FALLBACK_IMAGE,
+                description: "A delicious and authentic Indian preparation made with fresh local ingredients and spices."
+            });
+        }
+
+        // --- Core Functions ---
+
+        function init() {
+            lucide.createIcons();
+            renderView();
+            updateCartUI();
+        }
+
+        // Image Fallback Handler
+        function handleImageError(img) {
+            img.onerror = null; 
+            img.src = FALLBACK_IMAGE;
+        }
+
+        function navigateTo(tab) {
+            currentTab = tab;
+            toggleSidebar(false);
+            renderView();
+            window.scrollTo(0,0);
+        }
+
+        function toggleSidebar(show) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if(show) {
+                sidebar.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.add('opacity-100'), 10);
+                overlay.classList.add('pointer-events-auto');
+            } else {
+                sidebar.classList.add('translate-x-full');
+                overlay.classList.remove('opacity-100');
+                overlay.classList.remove('pointer-events-auto');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function renderView() {
+            const main = document.getElementById('main-content');
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if(btn.dataset.tab === currentTab) {
+                    btn.classList.add('bg-orange-50', 'text-orange-500', 'font-bold');
+                } else {
+                    btn.classList.remove('bg-orange-50', 'text-orange-500', 'font-bold');
+                }
+            });
+
+            if(currentTab === 'home') {
+                main.innerHTML = `
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-slate-800">Hungry? 😋</h2>
+                        <p class="text-gray-500">Delicious Indian food just for you.</p>
+                    </div>
+                    <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 mb-8">
+                        ${CATEGORIES.map(cat => `
+                            <button onclick="filterCategory('${cat}')" class="px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${selectedCategory === cat ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-gray-600 border border-gray-200'}">
+                                ${cat}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-16" id="food-list"></div>
+                    
+                    <section class="mb-16 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                        <div class="bg-orange-500 w-12 h-12 rounded-2xl flex items-center justify-center text-white mb-6">
+                            <i data-lucide="info" size="24"></i>
+                        </div>
+                        <h3 class="text-2xl font-black mb-4">Our Story</h3>
+                        <p class="text-gray-500 leading-relaxed mb-4">
+                            Local Bites was born out of a love for authentic Indian flavors and the desire to support local kitchens. We partner with the finest cooks in your neighborhood to bring traditional, home-style meals directly to your doorstep.
+                        </p>
+                    </section>
+
+                    <section class="mb-12">
+                        <h3 class="text-2xl font-black mb-8 flex items-center gap-2">
+                            What People Say <i data-lucide="star" fill="#fbbf24" class="text-yellow-400" size="24"></i>
+                        </h3>
+                        <div class="space-y-4">
+                            ${REVIEWS.map(rev => `
+                                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h4 class="font-bold text-slate-800">${rev.name}</h4>
+                                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">${rev.location}</p>
+                                        </div>
+                                        <div class="flex gap-0.5">
+                                            ${Array(rev.rating).fill().map(() => `<i data-lucide="star" size="12" fill="#fbbf24" class="text-yellow-400"></i>`).join('')}
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-gray-600 italic">"${rev.comment}"</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </section>
+                `;
+                renderFoodList();
+            } else if(currentTab === 'orders') {
+                main.innerHTML = `
+                    <div class="mb-6 flex items-center gap-3">
+                        <button onclick="navigateTo('home')" class="p-2 bg-gray-100 rounded-full"><i data-lucide="chevron-left"></i></button>
+                        <h2 class="text-2xl font-bold">Past Orders</h2>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <p class="text-xs text-gray-400 font-bold uppercase mb-1">Order #LB-9241</p>
+                                    <p class="text-sm font-medium text-gray-600">Yesterday, 8:30 PM</p>
+                                </div>
+                                <span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase">DELIVERED</span>
+                            </div>
+                            <p class="text-sm text-gray-800 mb-4">Butter Chicken x1, Garlic Naan x2</p>
+                            <div class="pt-4 border-t flex justify-between items-center font-bold">
+                                <p>Total: ₹420</p>
+                                <button class="text-orange-500 text-sm flex items-center gap-1">Reorder <i data-lucide="chevron-right" size="16"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if(currentTab === 'profile') {
+                main.innerHTML = `
+                    <div class="mb-6 flex items-center gap-3">
+                        <button onclick="navigateTo('home')" class="p-2 bg-gray-100 rounded-full"><i data-lucide="chevron-left"></i></button>
+                        <h2 class="text-2xl font-bold">My Profile</h2>
+                    </div>
+                    <div class="bg-white p-8 rounded-[2.5rem] text-center border border-gray-100 shadow-sm mb-6">
+                        <div class="w-24 h-24 bg-slate-100 rounded-full mx-auto mb-4 flex items-center justify-center text-slate-400 border-4 border-white shadow-lg">
+                            <i data-lucide="user" size="48"></i>
+                        </div>
+                        <h3 class="text-xl font-bold">Rahul Sharma</h3>
+                        <p class="text-gray-500 text-sm">+91 98765 43210</p>
+                    </div>
+                `;
+            } else if(currentTab === 'help') {
+                main.innerHTML = `
+                    <div class="mb-6 flex items-center gap-3">
+                        <button onclick="navigateTo('home')" class="p-2 bg-gray-100 rounded-full"><i data-lucide="chevron-left"></i></button>
+                        <h2 class="text-2xl font-bold">Support</h2>
+                    </div>
+                    <div class="bg-orange-500 text-white p-8 rounded-[2.5rem] shadow-xl">
+                        <h3 class="text-xl font-bold mb-2">How can we help?</h3>
+                        <p class="opacity-90 text-sm">Our team is available 24/7 for you.</p>
+                    </div>
+                `;
+            }
+            lucide.createIcons();
+        }
+
+        function filterCategory(cat) {
+            selectedCategory = cat;
+            renderView();
+        }
+
+        function renderFoodList() {
+            const list = document.getElementById('food-list');
+            if(!list) return;
+            const items = selectedCategory === 'All' ? FOOD_ITEMS : FOOD_ITEMS.filter(i => i.category === selectedCategory);
+            
+            list.innerHTML = items.map(item => {
+                const inCart = cart.find(c => c.id === item.id);
+                return `
+                    <div onclick="openDetail(${item.id})" class="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100 flex flex-col cursor-pointer relative">
+                        <div class="h-32 overflow-hidden bg-gray-100">
+                            <img src="${item.image}" onerror="handleImageError(this)" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        </div>
+                        <div class="p-3 flex flex-col flex-1">
+                            <div class="flex-1">
+                                <h3 class="font-bold text-sm leading-tight mb-1 line-clamp-1">${item.name}</h3>
+                                <div class="flex items-center gap-1 bg-green-50 w-fit px-1.5 py-0.5 rounded-lg text-green-700 text-[9px] font-bold">
+                                    <i data-lucide="star" size="8" fill="currentColor"></i> ${item.rating}
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-2">
+                                <span class="text-sm font-black">₹${item.price}</span>
+                                <div class="flex items-center gap-1 text-[9px] text-gray-400 font-medium">
+                                    <i data-lucide="clock" size="10"></i> ${item.time}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="absolute right-2 top-2" onclick="event.stopPropagation()">
+                            ${inCart ? `
+                                <div class="bg-orange-500 text-white flex flex-col items-center rounded-xl p-0.5 shadow-lg scale-90">
+                                    <button onclick="updateQty(${item.id}, 1)" class="p-1.5"><i data-lucide="plus" size="14"></i></button>
+                                    <span class="font-bold text-xs">${inCart.qty}</span>
+                                    <button onclick="updateQty(${item.id}, -1)" class="p-1.5 font-bold">-</button>
+                                </div>
+                            ` : `
+                                <button onclick="addToCart(${item.id})" class="bg-white/90 backdrop-blur-sm border border-orange-500 text-orange-500 p-2 rounded-xl shadow-lg hover:bg-orange-500 hover:text-white transition-all scale-90">
+                                    <i data-lucide="plus" size="20"></i>
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function addToCart(id) {
+            const item = FOOD_ITEMS.find(i => i.id === id);
+            const existing = cart.find(c => c.id === id);
+            if(existing) {
+                existing.qty++;
+            } else {
+                cart.push({...item, qty: 1});
+            }
+            updateCartUI();
+            renderFoodList();
+        }
+
+        function updateQty(id, delta) {
+            const item = cart.find(c => c.id === id);
+            if(item) {
+                item.qty += delta;
+                if(item.qty <= 0) {
+                    cart = cart.filter(c => c.id !== id);
+                }
+            }
+            updateCartUI();
+            renderFoodList();
+            if(document.getElementById('checkout-modal').style.display !== 'none') renderCheckout();
+        }
+
+        function updateCartUI() {
+            const bar = document.getElementById('cart-bar');
+            const count = document.getElementById('cart-count');
+            const price = document.getElementById('cart-price');
+            
+            if(cart.length > 0) {
+                bar.classList.remove('hidden');
+                const totalQty = cart.reduce((a, b) => a + b.qty, 0);
+                const totalAmt = cart.reduce((a, b) => a + (b.qty * b.price), 0);
+                count.innerText = totalQty;
+                price.innerText = `₹${totalAmt}`;
+            } else {
+                bar.classList.add('hidden');
+            }
+        }
+
+        function openDetail(id) {
+            const item = FOOD_ITEMS.find(i => i.id === id);
+            const modal = document.getElementById('detail-modal');
+            const content = document.getElementById('detail-content');
+            
+            content.innerHTML = `
+                <button onclick="closeDetail()" class="absolute top-6 right-6 z-10 p-2 bg-black/20 backdrop-blur-lg rounded-full text-white"><i data-lucide="x" size="20"></i></button>
+                <div class="h-64 overflow-hidden bg-gray-100">
+                    <img src="${item.image}" onerror="handleImageError(this)" class="w-full h-full object-cover">
+                </div>
+                <div class="p-8">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="w-3 h-3 border-2 ${item.veg ? 'border-green-600 bg-green-600' : 'border-red-600 bg-red-600'} rounded-sm"></span>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${item.category}</span>
+                    </div>
+                    <h2 class="text-3xl font-black mb-3">${item.name}</h2>
+                    <p class="text-gray-500 text-sm leading-relaxed mb-8">${item.description}</p>
+                    <div class="flex items-center justify-between mb-8 p-6 bg-gray-50 rounded-3xl">
+                        <div>
+                            <p class="text-xs text-gray-400 font-bold uppercase">Price</p>
+                            <p class="text-3xl font-black">₹${item.price}</p>
+                        </div>
+                        <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm"><i data-lucide="star" fill="#10b981" class="text-green-500" size="16"></i> <span class="font-bold">${item.rating}</span></div>
+                    </div>
+                    <button onclick="addToCart(${item.id}); closeDetail();" class="w-full py-5 bg-orange-500 text-white rounded-2xl font-black shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all">
+                        <i data-lucide="plus" size="24"></i> Add to Cart
+                    </button>
+                </div>
+            `;
+            modal.style.display = 'block';
+            setTimeout(() => content.classList.add('modal-active'), 10);
+            lucide.createIcons();
+        }
+
+        function closeDetail() {
+            const modal = document.getElementById('detail-modal');
+            const content = document.getElementById('detail-content');
+            content.classList.remove('modal-active');
+            setTimeout(() => modal.style.display = 'none', 400);
+        }
+
+        function toggleCart(show) {
+            const modal = document.getElementById('checkout-modal');
+            if(show) {
+                checkoutStep = 0;
+                modal.style.display = 'flex';
+                renderCheckout();
+            } else {
+                modal.style.display = 'none';
+            }
+        }
+
+        function renderCheckout() {
+            const body = document.getElementById('checkout-body');
+            const footer = document.getElementById('checkout-footer');
+            const title = document.getElementById('checkout-title');
+            const totalAmt = cart.reduce((a, b) => a + (b.qty * b.price), 0);
+
+            if(checkoutStep === 0) {
+                title.innerText = "Your Cart";
+                body.innerHTML = `
+                    <div class="p-6 space-y-4 max-w-2xl mx-auto w-full">
+                        ${cart.map(item => `
+                            <div class="bg-white p-5 rounded-[2rem] flex gap-4 shadow-sm border border-gray-100">
+                                <img src="${item.image}" onerror="handleImageError(this)" class="w-24 h-24 rounded-2xl object-cover bg-gray-100">
+                                <div class="flex-1">
+                                    <h4 class="font-bold text-lg">${item.name}</h4>
+                                    <p class="text-orange-600 font-black mb-3">₹${item.price}</p>
+                                    <div class="flex items-center gap-4 bg-gray-50 w-fit p-1 rounded-xl">
+                                        <button onclick="updateQty(${item.id}, -1)" class="w-8 h-8 bg-white border rounded-lg flex items-center justify-center font-black">-</button>
+                                        <span class="font-black w-6 text-center">${item.qty}</span>
+                                        <button onclick="updateQty(${item.id}, 1)" class="w-8 h-8 bg-white border rounded-lg flex items-center justify-center font-black">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 mt-6">
+                            <h3 class="font-black text-lg mb-6">Bill Summary</h3>
+                            <div class="space-y-4 text-sm font-medium">
+                                <div class="flex justify-between text-gray-500"><span>Item Total</span><span>₹${totalAmt}</span></div>
+                                <div class="flex justify-between text-green-600 font-bold"><span>Delivery</span><span>FREE</span></div>
+                                <div class="flex justify-between text-gray-500"><span>Taxes</span><span>₹25</span></div>
+                                <div class="pt-6 border-t flex justify-between font-black text-2xl"><span>Total</span><span>₹${totalAmt + 25}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                footer.innerHTML = `
+                    <button onclick="checkoutStep = 1; renderCheckout();" class="w-full py-5 bg-orange-500 text-white rounded-[1.5rem] font-black flex items-center justify-between px-8 shadow-2xl">
+                        <span class="text-lg">Proceed to Pay</span><span class="text-xl">₹${totalAmt + 25}</span>
+                    </button>
+                `;
+            } else if(checkoutStep === 1) {
+                title.innerText = "Payment";
+                body.innerHTML = `
+                    <div class="p-6 space-y-8 max-w-md mx-auto w-full text-center">
+                        <p class="text-4xl font-black mt-8">₹${totalAmt + 25}</p>
+                        <div class="bg-white p-8 rounded-[3rem] shadow-2xl border border-gray-100 flex flex-col items-center">
+                            <p class="font-bold text-xs mb-6 uppercase tracking-widest text-gray-400">Scan to Pay via UPI</p>
+                            <div class="bg-gray-50 w-64 h-64 rounded-3xl mb-8 flex items-center justify-center border-2 border-dashed border-gray-200">
+                                <svg width="150" height="150" viewBox="0 0 100 100" fill="#1e293b"><path d="M10,10 H35 V35 H10 V10 Z M15,15 V30 H30 V15 H15 Z M65,10 H90 V35 H65 V10 Z M70,15 V30 H85 V15 H70 Z M10,65 H35 V90 H10 V65 Z M15,70 V85 H30 V70 H15 Z M40,40 H60 V60 H40 V40 Z"/></svg>
+                            </div>
+                            <div class="w-full bg-orange-50 p-5 rounded-2xl flex items-center justify-between mb-8">
+                                <div class="text-left font-black text-slate-800">localbites@upi</div>
+                                <button class="text-orange-600 text-xs font-black px-4 py-2 bg-white rounded-xl shadow-sm border border-orange-100">COPY</button>
+                            </div>
+                            <div class="w-full text-left">
+                                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest ml-2">Verification</label>
+                                <input id="utr-input" type="text" placeholder="Enter 12-digit UTR Number" class="w-full p-5 bg-gray-50 border-2 border-transparent rounded-[1.5rem] focus:border-orange-500 outline-none font-bold mb-4">
+                                <button onclick="confirmOrder()" class="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black shadow-xl">Confirm Payment</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                footer.innerHTML = ``;
+            } else if(checkoutStep === 2) {
+                title.innerText = "Success";
+                body.innerHTML = `
+                    <div class="p-6 flex flex-col items-center justify-center min-h-[70vh] text-center">
+                        <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-8 animate-scale-in"><i data-lucide="check-circle-2" size="56"></i></div>
+                        <h3 class="text-4xl font-black mb-4">Ordered!</h3>
+                        <p class="text-gray-500 mb-10 max-w-xs leading-relaxed font-medium">Payment verified. Your food is on the way!</p>
+                        <button onclick="cart=[]; toggleCart(false); navigateTo('orders');" class="w-full max-w-xs py-5 bg-orange-500 text-white rounded-[1.5rem] font-black shadow-xl">View Order History</button>
+                    </div>
+                `;
+                footer.innerHTML = ``;
+            }
+            lucide.createIcons();
+        }
+
+        function confirmOrder() {
+            const val = document.getElementById('utr-input').value;
+            if(val.length >= 10) {
+                checkoutStep = 2;
+                renderCheckout();
+            } else {
+                alert("Please enter a valid 12-digit UTR number.");
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
